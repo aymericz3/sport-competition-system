@@ -1,0 +1,29 @@
+{
+  "id": "chess-swiss-2024",
+  "name": "Chess World Cup 2024 - Swiss",
+  "type": "chess_swiss",
+  "participants": [
+    { "id": "carlsen",     "name": "Magnus Carlsen",      "isTeam": false },
+    { "id": "caruana",     "name": "Fabiano Caruana",     "isTeam": false },
+    { "id": "ding",        "name": "Ding Liren",          "isTeam": false },
+    { "id": "nepo",        "name": "Ian Nepomniachtchi",  "isTeam": false }
+  ],
+  "contests": [
+    {
+      "id": "r1g1", "state": "FINISHED",
+      "participations": [
+        { "participantId": "carlsen", "role": "WHITE", "status": "COMPLETED", "outcomeValue": "WIN" },
+        { "participantId": "caruana", "role": "BLACK", "status": "COMPLETED", "outcomeValue": "LOSS" }
+      ],
+      "events": []
+    },
+    {
+      "id": "r1g2", "state": "FINISHED",
+      "participations": [
+        { "participantId": "ding",  "role": "WHITE", "status": "COMPLETED", "outcomeValue": "WIN" },
+        { "participantId": "nepo",  "role": "BLACK", "status": "COMPLETED", "outcomeValue": "LOSS" }
+      ],
+      "events": []
+    }
+  ]
+}

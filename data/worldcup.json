@@ -1,0 +1,61 @@
+{
+  "id": "wc2022-group-a",
+  "name": "FIFA World Cup 2022 - Group A",
+  "type": "football_league",
+  "participants": [
+    { "id": "qatar",       "name": "Qatar",       "isTeam": true, "members": [] },
+    { "id": "ecuador",     "name": "Ecuador",     "isTeam": true, "members": [] },
+    { "id": "senegal",     "name": "Senegal",     "isTeam": true, "members": [] },
+    { "id": "netherlands", "name": "Netherlands", "isTeam": true, "members": [] }
+  ],
+  "contests": [
+    {
+      "id": "m1", "state": "FINISHED",
+      "participations": [
+        { "participantId": "qatar",   "role": "HOME", "status": "COMPLETED", "outcomeValue": "0" },
+        { "participantId": "ecuador", "role": "AWAY", "status": "COMPLETED", "outcomeValue": "2" }
+      ],
+      "events": []
+    },
+    {
+      "id": "m2", "state": "FINISHED",
+      "participations": [
+        { "participantId": "senegal",     "role": "HOME", "status": "COMPLETED", "outcomeValue": "0" },
+        { "participantId": "netherlands", "role": "AWAY", "status": "COMPLETED", "outcomeValue": "2" }
+      ],
+      "events": []
+    },
+    {
+      "id": "m3", "state": "FINISHED",
+      "participations": [
+        { "participantId": "qatar",   "role": "HOME", "status": "COMPLETED", "outcomeValue": "1" },
+        { "participantId": "senegal", "role": "AWAY", "status": "COMPLETED", "outcomeValue": "3" }
+      ],
+      "events": []
+    },
+    {
+      "id": "m4", "state": "FINISHED",
+      "participations": [
+        { "participantId": "netherlands", "role": "HOME", "status": "COMPLETED", "outcomeValue": "1" },
+        { "participantId": "ecuador",     "role": "AWAY", "status": "COMPLETED", "outcomeValue": "1" }
+      ],
+      "events": []
+    },
+    {
+      "id": "m5", "state": "FINISHED",
+      "participations": [
+        { "participantId": "netherlands", "role": "HOME", "status": "COMPLETED", "outcomeValue": "2" },
+        { "participantId": "qatar",       "role": "AWAY", "status": "COMPLETED", "outcomeValue": "0" }
+      ],
+      "events": []
+    },
+    {
+      "id": "m6", "state": "FINISHED",
+      "participations": [
+        { "participantId": "ecuador", "role": "HOME", "status": "COMPLETED", "outcomeValue": "1" },
+        { "participantId": "senegal", "role": "AWAY", "status": "COMPLETED", "outcomeValue": "2" }
+      ],
+      "events": []
+    }
+  ]
+}
