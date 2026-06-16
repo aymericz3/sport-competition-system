@@ -64,7 +64,7 @@ public class Participation {
         if (status.isTerminal()) {
             throw new IllegalStateException("Cannot withdraw a terminal participation");
         }
-        status = ParticipationStatus.WITHDRAWN;
+        status = ParticipationStatus.WITHDREW;
     }
 
     @Override

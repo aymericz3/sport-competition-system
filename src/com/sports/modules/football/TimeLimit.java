@@ -4,7 +4,6 @@ import com.sports.core.contest.Contest;
 import com.sports.core.contest.TerminationKind;
 import com.sports.core.strategy.TerminationRule;
 
-/** Ends a football match when elapsed minutes reach the configured limit. */
 public class TimeLimit implements TerminationRule {
     private final int regularMinutes;
 
@@ -14,6 +13,10 @@ public class TimeLimit implements TerminationRule {
 
     @Override
     public TerminationKind isOver(Contest contest) {
-        throw new UnsupportedOperationException("TODO");
+        if (contest.getElapsedMinutes() >= regularMinutes) {
+            return TerminationKind.TIME_ELAPSED;
+        }
+
+        return TerminationKind.NOT_OVER;
     }
 }

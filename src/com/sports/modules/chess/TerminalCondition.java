@@ -5,14 +5,23 @@ import com.sports.core.contest.TerminationKind;
 import com.sports.core.strategy.TerminationRule;
 import java.util.List;
 
-/**
- * Chess termination: inspect the last MoveEvent for a non-NOT_OVER TerminationKind.
- * The rule never says "who won?" — only "is it over, and how?".
- */
 public class TerminalCondition implements TerminationRule {
 
     @Override
     public TerminationKind isOver(Contest contest) {
-        throw new UnsupportedOperationException("TODO");
+
+        List<Object> events = contest.getEventLog();
+
+        if (events.isEmpty()) {
+            return TerminationKind.NOT_OVER;
+        }
+
+        Object last = events.get(events.size() - 1);
+
+        if (last instanceof MoveEvent) {
+            return ((MoveEvent) last).getTerminationKind();
+        }
+
+        return TerminationKind.NOT_OVER;
     }
 }

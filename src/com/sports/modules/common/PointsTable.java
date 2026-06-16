@@ -50,7 +50,7 @@ public class PointsTable implements StandingsAggregator {
             }
 
             if (group.size() > 1 && tiebreaks != null && !tiebreaks.isEmpty()) {
-                group = tiebreaks.get(0).order(group, decidedContests, scoringRule);
+                group = tiebreaks.get(0).resolve(group, decidedContests);
             }
 
             for (Participant participant : group) {
