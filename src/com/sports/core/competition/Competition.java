@@ -6,14 +6,6 @@ import com.sports.core.entity.Sport;
 import com.sports.core.strategy.*;
 import java.util.*;
 
-/**
- * A group of participants playing under a Format, standings derived by a ScoringRule.
- *
- * Invariants:
- *  - every Contest uses only this competition's entrants
- *  - computeStandings() is always recomputed from decided results — never cached
- *  - ScoringRule lives here, not on Sport, so the same sport may score differently elsewhere
- */
 public class Competition {
     private final String id;
     private final String name;
@@ -36,6 +28,10 @@ public class Competition {
                        List<Tiebreak> tiebreaks,
                        TerminationRule tRule,
                        OutcomeRule oRule) {
+        if (entrants == null || entrants.size() < 2) {
+            throw new IllegalArgumentException("A competition needs at least two entrants");
+        }
+
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.sport = sport;
@@ -44,15 +40,26 @@ public class Competition {
         this.scoringRule = scoringRule;
         this.fixtureGenerator = fixtureGenerator;
         this.standingsAggregator = standingsAggregator;
-        this.tiebreaks = new ArrayList<>(tiebreaks);
+        this.tiebreaks = tiebreaks == null ? new ArrayList<>() : new ArrayList<>(tiebreaks);
         this.cachedTRule = tRule;
         this.cachedORule = oRule;
 
-        // TODO: validate entrants, then generate initial fixtures
-        // (non-adaptive: generateAll; adaptive: nextRound with no prior results)
+        if (fixtureGenerator.isAdaptive()) {
+            contests.addAll(fixtureGenerator.nextRound(
+                    this.entrants,
+                    getDecidedContests(),
+                    scoringRule,
+                    cachedTRule,
+                    cachedORule
+            ));
+        } else {
+            contests.addAll(fixtureGenerator.generateAll(
+                    this.entrants,
+                    cachedTRule,
+                    cachedORule
+            ));
+        }
     }
-
-    // ── Queries ───────────────────────────────────────────────────────────────
 
     public String getId()                       { return id; }
     public String getName()                     { return name; }
@@ -65,24 +72,48 @@ public class Competition {
 
     public List<Contest> getDecidedContests() {
         List<Contest> decided = new ArrayList<>();
-        for (Contest c : contests) if (c.isDecided()) decided.add(c);
+        for (Contest c : contests) {
+            if (c.isDecided()) {
+                decided.add(c);
+            }
+        }
         return decided;
     }
 
-    /** Always recomputed — no stored Stats classes. */
     public Leaderboard computeStandings() {
-        throw new UnsupportedOperationException("TODO");
+        return standingsAggregator.compute(
+                getDecidedContests(),
+                scoringRule,
+                Collections.unmodifiableList(tiebreaks)
+        );
     }
 
-    // ── Mutations ─────────────────────────────────────────────────────────────
-
-    /** Generate next round for adaptive formats (Swiss, knockout). */
     public void generateNextRound() {
-        throw new UnsupportedOperationException("TODO");
+        if (!fixtureGenerator.isAdaptive()) {
+            throw new IllegalStateException("Only adaptive competitions can generate next rounds");
+        }
+
+        for (Contest contest : contests) {
+            if (!contest.isDecided()) {
+                throw new IllegalStateException("Current round must be complete before generating the next round");
+            }
+        }
+
+        contests.addAll(fixtureGenerator.nextRound(
+                entrants,
+                getDecidedContests(),
+                scoringRule,
+                cachedTRule,
+                cachedORule
+        ));
     }
 
-    /** Add a manually-created contest (e.g. a re-scheduled fixture). */
-    public void addContest(Contest contest) { contests.add(contest); }
+    public void addContest(Contest contest) {
+        contests.add(contest);
+    }
 
-    @Override public String toString() { return name; }
+    @Override
+    public String toString() {
+        return name;
+    }
 }

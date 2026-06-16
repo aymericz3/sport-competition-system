@@ -23,12 +23,49 @@ public class Participation {
     public ParticipationStatus getStatus() { return status; }
     public String getOutcomeValue()        { return outcomeValue; }
 
-    public void activate()                 { throw new UnsupportedOperationException("TODO"); }
-    public void complete(String value)     { throw new UnsupportedOperationException("TODO"); }
-    public void didNotFinish()             { throw new UnsupportedOperationException("TODO"); }
-    public void didNotStart()              { throw new UnsupportedOperationException("TODO"); }
-    public void disqualify()               { throw new UnsupportedOperationException("TODO"); }
-    public void withdraw()                 { throw new UnsupportedOperationException("TODO"); }
+    public void activate() {
+        if (status != ParticipationStatus.ENTERED) {
+            throw new IllegalStateException("Can only activate from ENTERED");
+        }
+        status = ParticipationStatus.ACTIVE;
+    }
+
+    public void complete(String value) {
+        if (status != ParticipationStatus.ACTIVE) {
+            throw new IllegalStateException("Can only complete from ACTIVE");
+        }
+        outcomeValue = value;
+        status = ParticipationStatus.COMPLETED;
+    }
+
+    public void didNotFinish() {
+        if (status != ParticipationStatus.ACTIVE) {
+            throw new IllegalStateException("Can only mark DID_NOT_FINISH from ACTIVE");
+        }
+        status = ParticipationStatus.DID_NOT_FINISH;
+    }
+
+    public void didNotStart() {
+        if (status != ParticipationStatus.ENTERED &&
+            status != ParticipationStatus.ACTIVE) {
+            throw new IllegalStateException("Can only mark DID_NOT_START from ENTERED or ACTIVE");
+        }
+        status = ParticipationStatus.DID_NOT_START;
+    }
+
+    public void disqualify() {
+        if (status.isTerminal()) {
+            throw new IllegalStateException("Cannot disqualify a terminal participation");
+        }
+        status = ParticipationStatus.DISQUALIFIED;
+    }
+
+    public void withdraw() {
+        if (status.isTerminal()) {
+            throw new IllegalStateException("Cannot withdraw a terminal participation");
+        }
+        status = ParticipationStatus.WITHDRAWN;
+    }
 
     @Override
     public String toString() {

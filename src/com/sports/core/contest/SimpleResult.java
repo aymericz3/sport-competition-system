@@ -17,13 +17,15 @@ public class SimpleResult implements Result {
         this.contributions = Collections.unmodifiableMap(new LinkedHashMap<>(contributions));
     }
 
-    @Override
-    public List<Participation> getRankedParticipations() {
-        throw new UnsupportedOperationException("TODO");
-    }
-
-    @Override
-    public StandingContribution getContribution(Participation participation) {
-        throw new UnsupportedOperationException("TODO");
-    }
+@Override
+public List<Participation> getRankedParticipations() {
+    return ranked;
 }
+
+@Override
+public StandingContribution getContribution(Participation participation) {
+    return contributions.get(participation);
+}
+
+}
+  

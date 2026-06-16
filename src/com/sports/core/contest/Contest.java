@@ -7,27 +7,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * A self-contained encounter that produces exactly one Result once decided.
- *
- * State machine (normal path): SCHEDULED → IN_PROGRESS → FINISHED
- * Pause branch:                IN_PROGRESS ↔ SUSPENDED
- * Exception endings:           SCHEDULED|IN_PROGRESS → FORFEITED | WALKOVER | ABANDONED | CANCELLED_VOID
- * Correction only:             FINISHED → REOPENED → IN_PROGRESS  (explicit, audited)
- *
- * Invariants to enforce:
- *  - at least one Participation must exist before start()
- *  - a participant appears at most once (enforced by callers / FixtureGenerator)
- *  - Result exists iff the contest is in a decided state
- *  - the state never moves backward without going through REOPENED
- */
 public class Contest {
     private final String id;
     private final List<Participation> participations;
     private final TerminationRule terminationRule;
     private final OutcomeRule outcomeRule;
     private final List<Object> eventLog;
-    private final List<Contest> children; // composite — for nested contests (e.g. tennis sets)
+    private final List<Contest> children;
 
     private ContestState state;
     private Result result;
@@ -37,8 +23,10 @@ public class Contest {
     public Contest(List<Participation> participations,
                    TerminationRule terminationRule,
                    OutcomeRule outcomeRule) {
-        if (participations == null || participations.isEmpty())
+        if (participations == null || participations.isEmpty()) {
             throw new IllegalArgumentException("A contest needs at least one participation");
+        }
+
         this.id = UUID.randomUUID().toString();
         this.participations = new ArrayList<>(participations);
         this.terminationRule = terminationRule;
@@ -46,9 +34,8 @@ public class Contest {
         this.eventLog = new ArrayList<>();
         this.children = new ArrayList<>();
         this.state = ContestState.SCHEDULED;
+        this.terminationKind = TerminationKind.NOT_OVER;
     }
-
-    // ── Queries ──────────────────────────────────────────────────────────────
 
     public String getId()                       { return id; }
     public ContestState getState()              { return state; }
@@ -62,79 +49,136 @@ public class Contest {
     public OutcomeRule getOutcomeRule()         { return outcomeRule; }
 
     public boolean isDecided() {
-        throw new UnsupportedOperationException("TODO");
+        return state == ContestState.FINISHED ||
+               state == ContestState.FORFEITED ||
+               state == ContestState.WALKOVER;
     }
 
-    // ── State transitions ─────────────────────────────────────────────────────
-
     public void start() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.SCHEDULED, "Contest can only start from SCHEDULED");
+
+        for (Participation participation : participations) {
+            participation.activate();
+        }
+
+        state = ContestState.IN_PROGRESS;
     }
 
     public void suspend() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.IN_PROGRESS, "Contest can only be suspended from IN_PROGRESS");
+        state = ContestState.SUSPENDED;
     }
 
     public void resume() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.SUSPENDED, "Contest can only be resumed from SUSPENDED");
+        state = ContestState.IN_PROGRESS;
     }
 
     public void cancel() {
-        throw new UnsupportedOperationException("TODO");
+        require(!isDecided() && state != ContestState.CANCELLED_VOID,
+                "Contest cannot be cancelled once decided or already cancelled");
+        state = ContestState.CANCELLED_VOID;
+        result = null;
+        terminationKind = TerminationKind.NOT_OVER;
     }
 
     public void reopen() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.FINISHED, "Only FINISHED contests can be reopened");
+        state = ContestState.REOPENED;
+        result = null;
+        terminationKind = TerminationKind.NOT_OVER;
     }
 
     public void resumeCorrection() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.REOPENED, "Correction can only resume from REOPENED");
+        state = ContestState.IN_PROGRESS;
     }
 
-    /** Record a domain event (e.g. GoalEvent, MoveEvent) and check termination. */
     public void recordEvent(Object event) {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.IN_PROGRESS, "Events can only be recorded while IN_PROGRESS");
+        eventLog.add(event);
+        checkTermination();
     }
 
-    /** Advance elapsed time for time-limited disciplines and check termination. */
     public void setElapsedMinutes(int minutes) {
-        throw new UnsupportedOperationException("TODO");
+        if (minutes < 0) {
+            throw new IllegalArgumentException("Elapsed minutes cannot be negative");
+        }
+
+        elapsedMinutes = minutes;
+
+        if (state == ContestState.IN_PROGRESS) {
+            checkTermination();
+        }
     }
 
-    /** Forfeit: loser failed to complete; winner takes the points. */
     public void forfeit(Participation loser) {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.SCHEDULED || state == ContestState.IN_PROGRESS,
+                "Forfeit can only happen from SCHEDULED or IN_PROGRESS");
+        require(participations.contains(loser), "Loser must belong to this contest");
+
+        if (loser.getStatus() == ParticipationStatus.ENTERED) {
+            loser.activate();
+        }
+
+        loser.didNotFinish();
+        state = ContestState.FORFEITED;
+        terminationKind = TerminationKind.FORFEIT;
+        result = outcomeRule.buildResult(this);
     }
 
-    /** Walkover: absentee never showed up. */
     public void walkover(Participation absentee) {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.SCHEDULED || state == ContestState.IN_PROGRESS,
+                "Walkover can only happen from SCHEDULED or IN_PROGRESS");
+        require(participations.contains(absentee), "Absentee must belong to this contest");
+
+        absentee.didNotStart();
+        state = ContestState.WALKOVER;
+        terminationKind = TerminationKind.WALKOVER;
+        result = outcomeRule.buildResult(this);
     }
 
-    /** Abandon — discipline decides separately whether this result stands. */
     public void abandon() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.IN_PROGRESS, "Contest can only be abandoned from IN_PROGRESS");
+        state = ContestState.ABANDONED;
+        terminationKind = TerminationKind.ABANDONED;
+        result = null;
     }
 
-    /** Mark an abandoned contest as decided (discipline rules it stands). */
     public void acceptAbandonedResult() {
-        throw new UnsupportedOperationException("TODO");
+        require(state == ContestState.ABANDONED, "Only ABANDONED contests can have their result accepted");
+        state = ContestState.FINISHED;
+        result = outcomeRule.buildResult(this);
     }
 
-    /** Add a nested contest (e.g. a tennis set inside a match). */
     public void addChild(Contest child) {
-        throw new UnsupportedOperationException("TODO");
+        require(child != null, "Child contest cannot be null");
+        require(!isDecided() && state != ContestState.CANCELLED_VOID,
+                "Cannot add child to a decided or cancelled contest");
+
+        children.add(child);
     }
 
-    // ── Internal ─────────────────────────────────────────────────────────────
-
-    /** Asks the TerminationRule whether the contest is over; if so, finalises it. */
     public void checkTermination() {
-        throw new UnsupportedOperationException("TODO");
+        TerminationKind kind = terminationRule.isOver(this);
+
+        if (kind != TerminationKind.NOT_OVER) {
+            terminationKind = kind;
+            finalise(kind);
+        }
     }
 
     private void finalise(TerminationKind kind) {
-        throw new UnsupportedOperationException("TODO");
+        terminationKind = kind;
+        state = ContestState.FINISHED;
+
+        for (Participation participation : participations) {
+            if (participation.getStatus() == ParticipationStatus.ACTIVE) {
+                participation.complete(null);
+            }
+        }
+
+        result = outcomeRule.buildResult(this);
     }
 
     private static void require(boolean condition, String message) {
